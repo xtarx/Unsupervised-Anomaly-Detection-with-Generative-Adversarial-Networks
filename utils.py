@@ -241,6 +241,7 @@ def visualize(sess, dcgan, config, option):
     new_image_set = [merge(np.array([images[idx] for images in image_set]), [10, 10]) \
         for idx in range(64) + range(63, -1, -1)]
     make_gif(new_image_set, './samples/test_gif_merged.gif', duration=8)
+<<<<<<< HEAD
 
 
 def image_manifold_size(num_images):
@@ -248,3 +249,5 @@ def image_manifold_size(num_images):
   manifold_w = int(np.ceil(np.sqrt(num_images)))
   assert manifold_h * manifold_w == num_images
   return manifold_h, manifold_w
+=======
+>>>>>>> c3124ead6fad8a86eae3275d644fd3e4fda70726
