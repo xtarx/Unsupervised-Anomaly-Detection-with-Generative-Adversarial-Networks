@@ -6,7 +6,9 @@ from model import DCGAN
 from utils import pp, visualize, to_json, show_all_variables
 
 import tensorflow as tf
-
+# suppress warning s
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.logging.set_verbosity(tf.logging.ERROR)
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 1, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
@@ -59,7 +61,7 @@ def main(_):
         checkpoint_dir=FLAGS.checkpoint_dir,
         sample_dir=FLAGS.sample_dir)
 
-    show_all_variables()
+    # show_all_variables()
 
     if FLAGS.train:
       dcgan.train(FLAGS)
