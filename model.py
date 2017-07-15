@@ -11,8 +11,6 @@ from ops import *
 from utils import *
 
 
-
-
 def conv_out_size_same(size, stride):
     return int(math.ceil(float(size) / float(stride)))
 
@@ -260,19 +258,19 @@ class DCGAN(object):
                 h1 = lrelu(self.d_bn1(conv2d(h0, self.df_dim * 2, name='d_h1_conv')))
                 h2 = lrelu(self.d_bn2(conv2d(h1, self.df_dim * 4, name='d_h2_conv')))
                 h3 = lrelu(self.d_bn3(conv2d(h2, self.df_dim * 8, name='d_h3_conv')))
+                h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin')
 
-                h3 = tf.contrib.layers.flatten(h3)
-                h3 = minibatch_discrimination(h3, self.z_dim)
-                # h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin')
-                h4 = linear(tf.contrib.layers.flatten(h3), 1, 'd_h3_lin')
+                # minibatch discrimination
+                # h3 = tf.contrib.layers.flatten(h3)
+                # h3 = minibatch_discrimination(h3, self.z_dim)
+                # h4 = linear(tf.contrib.layers.flatten(h3), 1, 'd_h3_lin')
+
 
                 return tf.nn.sigmoid(h4), h4
-
 
     def generator(self, z, y=None):
         with tf.variable_scope("generator") as scope:
             if not self.y_dim:
-
                 s_h, s_w = self.output_height, self.output_width
                 s_h2, s_w2 = conv_out_size_same(s_h, 2), conv_out_size_same(s_w, 2)
                 s_h4, s_w4 = conv_out_size_same(s_h2, 2), conv_out_size_same(s_w2, 2)
@@ -304,13 +302,11 @@ class DCGAN(object):
 
                 return tf.nn.tanh(h4)
 
-
     def sampler(self, z, y=None):
         with tf.variable_scope("generator") as scope:
             scope.reuse_variables()
 
             if not self.y_dim:
-
                 s_h, s_w = self.output_height, self.output_width
                 s_h2, s_w2 = conv_out_size_same(s_h, 2), conv_out_size_same(s_w, 2)
                 s_h4, s_w4 = conv_out_size_same(s_h2, 2), conv_out_size_same(s_w2, 2)
@@ -335,7 +331,6 @@ class DCGAN(object):
                 h4 = deconv2d(h3, [self.batch_size, s_h, s_w, self.c_dim], name='g_h4')
 
                 return tf.nn.tanh(h4)
-
 
     @property
     def model_dir(self):
