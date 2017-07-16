@@ -55,20 +55,20 @@ def read_pgm(filename, byteorder='>'):
                          offset=len(header)
                          ).reshape((int(height), int(width)))
 
-#
-# images = []
-# for i, row in normal.iterrows():
-#     images.append(read_pgm('./mias/pgm/' + row['reference_number'] + '.pgm'))
-#
-# j = 0;
-# for i, row in normal.iterrows():
-#     images[j].setflags(write=1)
-#     if (int(row['reference_number'][-3:]) % 2 == 0):
-#         images[j][:324, 700:1024] = np.zeros((324, 324))
-#     else:
-#         images[j][:324, :324] = np.zeros((324, 324))
-#         matlabimg.imsave('./mias/png/' + row['reference_number'] + '.png', images[j], vmin=0, vmax=255, cmap='gray')
-#     j += 1
+
+images = []
+for i, row in normal.iterrows():
+    images.append(read_pgm('./mias/pgm/' + row['reference_number'] + '.pgm'))
+
+j = 0;
+for i, row in normal.iterrows():
+    images[j].setflags(write=1)
+    if (int(row['reference_number'][-3:]) % 2 == 0):
+        images[j][:324, 700:1024] = np.zeros((324, 324))
+    else:
+        images[j][:324, :324] = np.zeros((324, 324))
+        matlabimg.imsave('./mias/png/' + row['reference_number'] + '.png', images[j], vmin=0, vmax=255, cmap='gray')
+    j += 1
 
 
 def generate_patches(input_image):
@@ -78,7 +78,7 @@ def generate_patches(input_image):
                                        random_state=rng)
     for counter, i in enumerate(patches):
         if np.any(i):
-            matlabimg.imsave('./data/mias200/' + str(global_counter) + '.jpg', i, cmap='gray')
+            matlabimg.imsave('./data/mias/' + str(global_counter) + '.jpg', i, cmap='gray')
             global_counter += 1
 
 
