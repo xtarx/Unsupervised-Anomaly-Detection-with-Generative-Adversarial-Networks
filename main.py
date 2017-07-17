@@ -77,7 +77,6 @@ def main(_):
         OPTION = 0
         # visualize(sess, dcgan, FLAGS, OPTION)
 
-        # gen_list = generate_imgs(sess, dcgan, FLAGS)
         #
         # print(len(gen_list))
         # print(gen_list[0].shape)
@@ -90,7 +89,6 @@ def main(_):
 
 
         test_list = []
-        gen_list = []
 
         arr = os.listdir(os.getcwd() + "/data/test/")
         for test_image in arr:
@@ -109,7 +107,10 @@ def main(_):
 
         arr = os.listdir(os.getcwd() + "/data/testGANs/")
         arr = arr[1:]
-        print(arr)
+        # print(arr)
+
+        gen_list = generate_imgs(sess, dcgan, FLAGS)
+
         for test_image in arr:
             query_image_path = os.getcwd() + "/data/testGANs/" + test_image
             c_dim = imread(query_image_path).shape[-1]
@@ -134,8 +135,8 @@ def main(_):
 
 
 
-        # print(query_image);
-        # generate_latent_for_query(sess, dcgan, query_image, FLAGS=FLAGS, OPTION=OPTION)
+    # print(query_image);
+    # generate_latent_for_query(sess, dcgan, query_image, FLAGS=FLAGS, OPTION=OPTION)
 
 
 if __name__ == '__main__':
