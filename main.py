@@ -109,7 +109,7 @@ def main(_):
         print(len(gen_list))
         print(gen_list[0].shape)
         for i in range(21):
-            scipy.misc.imsave('./samples/testGANs/' + str(i) + '.png', gen_list[i])
+            scipy.misc.imsave(os.getcwd() + '/data/testGANs/' + str(i) + '.png', gen_list[i])
 
         arr = os.listdir(os.getcwd() + "/data/testGANs/")
 
