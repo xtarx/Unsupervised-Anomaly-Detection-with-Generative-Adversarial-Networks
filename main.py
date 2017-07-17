@@ -77,12 +77,6 @@ def main(_):
         OPTION = 0
         # visualize(sess, dcgan, FLAGS, OPTION)
 
-        #
-        # print(len(gen_list))
-        # print(gen_list[0].shape)
-        # for i in range(21):
-        #     scipy.misc.imsave('./samples/testGANs/'+str(i)+'.png', gen_list[i])
-        #
 
 
         # calculate inception score
@@ -109,7 +103,15 @@ def main(_):
         arr = arr[1:]
         # print(arr)
 
+        # generate Images from GAN
         gen_list = generate_imgs(sess, dcgan, FLAGS)
+
+        print(len(gen_list))
+        print(gen_list[0].shape)
+        for i in range(21):
+            scipy.misc.imsave('./samples/testGANs/' + str(i) + '.png', gen_list[i])
+
+        arr = os.listdir(os.getcwd() + "/data/testGANs/")
 
         for test_image in arr:
             query_image_path = os.getcwd() + "/data/testGANs/" + test_image
