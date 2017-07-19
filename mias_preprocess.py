@@ -83,11 +83,11 @@ def generate_patches(input_image):
     for counter, i in enumerate(patches):
 
         if np.any(i):
-            matlabimg.imsave('./data/mias200/' + str(global_counter) + '.png', i, cmap='gray')
+            matlabimg.imsave('./data/mias/' + str(global_counter) + '.png', i, cmap='gray')
             global_counter += 1
 
 #
-# convert_pgm_to_png()
+convert_pgm_to_png()
 
 images = []
 arr = os.listdir(os.getcwd() + "/mias/png/")
