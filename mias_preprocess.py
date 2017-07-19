@@ -75,10 +75,10 @@ def convert_pgm_to_png():
 
 
 def generate_patches(input_image):
-    print("in generate patchhes")
+    # print("in generate patchhes")
     global global_counter
     input_image = crop_center(input_image, 384, 384)
-    patches = image.extract_patches_2d(input_image, patch_size, max_patches=200,
+    patches = image.extract_patches_2d(input_image, patch_size, max_patches=400,
                                        random_state=rng)
     for counter, i in enumerate(patches):
 
@@ -92,6 +92,7 @@ convert_pgm_to_png()
 images = []
 arr = os.listdir(os.getcwd() + "/mias/png/")
 # arr=arr[1:2]
+print("png size ",len(arr))
 for img in arr:
     images.append(matlabimg.imread(os.getcwd() + "/mias/png/" + img))
 
