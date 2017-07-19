@@ -11,7 +11,7 @@ import os
 from sklearn.feature_extraction import image
 
 rng = np.random.RandomState(0)
-patch_size = (64, 64)
+patch_size = (96,96)
 global_counter = 0
 
 # read csvFile
