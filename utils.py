@@ -6,7 +6,8 @@ import math
 import json
 import random
 import pprint
-
+import os
+# import matplotlib.pyplot
 import matplotlib
 import scipy.misc
 import numpy as np
@@ -173,14 +174,25 @@ def generate_imgs(sess, dcgan, config):
     return (sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample}))
 
 
+def save_images2(image, image_path):
+    image = np.reshape(image, [64, 64])
+    return imsave2(inverse_transform(image), image_path)
+
+
+def imsave2(image, path):
+    return scipy.misc.imsave(path, image)
+
+
 def visualize(sess, dcgan, config, option):
     image_frame_dim = int(math.ceil(config.batch_size ** .5))
+    # image_frame_dim = 1
     if option == 0:
-        for i in range(10):
-            z_sample = np.random.uniform(-0.5, 0.5, size=(config.batch_size, dcgan.z_dim))
+        for i in range(1):
+            z_sample = np.random.uniform(-1, 1, size=(config.batch_size, dcgan.z_dim))
             samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample})
-            save_images(samples, [image_frame_dim, image_frame_dim],
-                        './samples/test/test_%s.png' % strftime("%Y%m%d%H%M%S", gmtime()))
+            for idx, im in enumerate(samples):
+                save_images2(im, './samples/test/test_%s.png' % ('' + str(i) + '_' + str(idx)))
+
     elif option == 1:
         values = np.arange(0, 1, 1. / config.batch_size)
         for idx in xrange(100):
@@ -210,79 +222,184 @@ def image_manifold_size(num_images):
 
 # Generate  latent that generates similar query image ... optimize using Residual loss (Tee)
 # Detect if being a normal or anomalous image.
-# def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTION):
-def generate_latent_for_query(sess, dcgan, query_image, FLAGS, OPTION):
-    x = 1
-    while (x):
-        # q = scipy.misc.imread(query_image, flatten=True)
-        # q = np.asarray(q)
-        q = query_image
-        print(q.shape)
-        out = query_noise2(dcgan, sess, q)
-        x = input("press 0 to quit")
-    return False
+def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTION, batch_size=1):
+    global global_counter
+    global_counter = 0
+    try:
+        os.makedirs(os.path.join('./tests', 'MIAS'))
+    except:
+        print('Dir exsists')
+        dcgan.batch_size = batch_size
+
+        # define a tensorflow varb
+        w = tf.Variable(initial_value=tf.random_uniform(minval=-1, maxval=1, shape=[batch_size, dcgan.z_dim]),
+                        name='qnoise')
+
+        samples = dcgan.sampler2(w)
+
+        # get activations from discriminator for L loss
+        # 	query = tf.convert_to_tensor(query_im, dtype=tf.float32)
+        query = tf.placeholder(shape=[1, 64, 64, 1], dtype=tf.float32)
+        # print(query.get_shape, query_im.shape)
+        # print("samples",samples.get_shape)
+        _, _, real = dcgan.discriminator2(query, reuse=True)
+        _, _, fake = dcgan.discriminator2(samples, reuse=True)
+
+        # define loss funtion and optimizer
+        Resloss = tf.reduce_mean(tf.abs(samples - query))
+        DiscLoss = tf.reduce_mean(tf.abs(real - fake))
+        loss = Resloss + DiscLoss
+        # Training params
+        learning_rate = 0.0007
+        beta1 = 0.7
+        optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
+            .minimize(loss, var_list=[w])
+
+        # init vars
+        w_init = w.initializer
+        sess.run(w_init)
+        # tf.variables_initializer([w]).run(session = sess)
+        print(sess.run(tf.report_uninitialized_variables()))
+        Adam_initializers = [var.initializer for var in tf.global_variables() if 'qnoise/Adam' in var.name]
+        sess.run(Adam_initializers)
+        beta_initializers = [var.initializer for var in tf.global_variables() if 'beta1_power' in var.name]
+        sess.run(beta_initializers)
+        beta_initializers = [var.initializer for var in tf.global_variables() if 'beta2_power' in var.name]
+        sess.run(beta_initializers)
+
+        x = 1
+        avg = 0
+        while (x != 0):
+            if (inputClass is not None):
+                q, _ = inputClass.next_batch(1)
+                print("using next batch")
+            else:
+                q = scipy.misc.imread(query_image, flatten=True)
+                q = np.asarray(q)
+            # q = transform(q, 64, 64)
+            # q = np.expand_dims(q,axis=2)
+            # q = np.expand_dims(q, axis=0)
+
+            q = np.asarray(q)
+            print(q.shape)
+            loss, R, D = query_noise2(dcgan, sess, q, w, optim, loss, query, Resloss, DiscLoss)
+            # x = input("press 0 to quit")
+            global_counter += 1
+
+            avg += loss
+            print(loss, R, D)
+            print('AVerage Loss', avg / global_counter)
+
+            # define loss funtion and optimizer
+            Resloss = tf.reduce_mean(tf.abs(samples - query))
+            DiscLoss = tf.reduce_mean(tf.abs(real - fake))
+            loss = Resloss + DiscLoss
+        return False
 
 
 # Takes a query image, returns the image re-created by the GAN
-def query_noise2(dcgan, sess, query_im, batch_size=1, noise_size=100):
+def query_noise(dcgan, sess, query_im, batch_size=1, noise_size=100):
     dcgan.batch_size = batch_size
+
     # define a tensorflow var
-    w = tf.Variable(initial_value=tf.random_normal(mean=0, stddev=2, shape=[batch_size, dcgan.z_dim]),
+    w = tf.Variable(initial_value=tf.random_uniform(minval=-1, maxval=1, shape=[batch_size, noise_size]),
                     name='qnoise')
-    samples = dcgan.sampler2(w)
+    y_in = tf.placeholder(dtype=tf.float32, shape=[batch_size, 10])
+
+    samples = dcgan.sampler2(w, y_in)
+    digit = 8
+    y = np.ones(batch_size, dtype=int) * digit
+    y_one_hot = np.zeros((batch_size, 10))
+    y_one_hot[np.arange(batch_size), y] = 1
+
     # get activations from discriminator for L loss
-    # 	query = tf.convert_to_tensor(query_im, dtype=tf.float32)
-    query = tf.placeholder(shape=[1, 64, 64, 1], dtype=tf.float32)
-    # print(query.get_shape, query_im.shape)
-    # print("samples",samples.get_shape)
-    # _, _, real = dcgan.discriminator2(query, reuse=True)
-    # _, _, fake = dcgan.discriminator2(samples, reuse=True)
+    label = tf.convert_to_tensor(y_one_hot, dtype=tf.float32)
+    query = tf.convert_to_tensor(query_im, dtype=tf.float32)
+    print(query.get_shape, query_im.shape)
+    print("samples", samples.get_shape)
+    print(label.get_shape)
+    _, _, real = dcgan.discriminator(query, y=label, reuse=True)
+    _, _, fake = dcgan.discriminator(samples, y=label, reuse=True)
+
     # define loss funtion and optimizer
-    Resloss = tf.reduce_mean(tf.abs(samples - query))
-    # DiscLoss = tf.reduce_mean(tf.abs(real - fake))
-    DiscLoss = 0
-    loss = Resloss + DiscLoss
+    Resloss = tf.reduce_mean(tf.abs(samples - query_im))
+    DiscLoss = tf.reduce_mean(tf.abs(real - fake))
+    loss = 0.1 * Resloss + DiscLoss
     # Training params
-    learning_rate = 0.0006
-    beta1 = 0.7
+    learning_rate = 0.0002
+    beta1 = 0.5
     optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
         .minimize(loss, var_list=[w])
+
     # init vars
     tf.variables_initializer([w]).run()
     print(sess.run(tf.report_uninitialized_variables()))
     Adam_initializers = [var.initializer for var in tf.global_variables() if 'qnoise/Adam' in var.name]
     sess.run(Adam_initializers)
-    beta_initializers = [var.initializer for var in tf.global_variables() if 'beta1_power' in var.name]
+    beta_initializers = [var.initializer for var in tf.global_variables() if 'beta' in var.name]
     sess.run(beta_initializers)
-    beta_initializers = [var.initializer for var in tf.global_variables() if 'beta2_power' in var.name]
-    sess.run(beta_initializers)
-    losses = []
+
     # backprop over noise to minimize loss(500 iterations)
-    for i in range(100):
+    for i in range(500):
+        _, current_loss, noise = sess.run([optim, loss, w], feed_dict={y_in: y_one_hot})
+        print(current_loss)
+
+    z_sample = noise
+    samples = dcgan.sampler2(w, y_in)
+    samples = sess.run(samples, feed_dict={w: z_sample, y_in: y_one_hot})
+
+    save_images(samples, [28, 28],
+                './tests/' + 'MIAS' + '/test_arange_%s.png' % (5))
+    return samples
+
+
+# Takes a query image, returns the image re-created by the GAN
+def query_noise2(dcgan, sess, query_im, w, optim, loss, query, Res_loss, Disc_loss, batch_size=1, noise_size=100):
+    matplotlib.pyplot.ioff()
+
+    losses = []
+    # backprop over noise to minimize loss(r iterations)
+    r = 1000
+    for i in range(r):
         _, current_loss, noise = sess.run([optim, loss, w], feed_dict={query: query_im})
         losses.append(current_loss)
         print(current_loss)
-    matplotlib.pyplot.plot(np.arange(0, 6000, 1), losses)
-    matplotlib.pyplot.show(block=True)
-    # 	for i in range(10):
-    # 			z_sample = np.random.normal(0, 2, size=(1, dcgan.z_dim))
-    # 			samples = dcgan.sampler2(w)
-    # 			samples = sess.run(samples, feed_dict={w: z_sample})
-    # 			save_images(samples, [64, 64],
-    # 						 './tests/' + 'MIAS' + '/test_arange_%s.png' % (i))
+    R, D = sess.run([Res_loss, Disc_loss], {query: query_im})
+
+    matplotlib.pyplot.figure(1)
+    matplotlib.pyplot.plot(np.arange(0, r, 1), losses)
+    if (global_counter % 2 == 0):
+        matplotlib.pyplot.savefig(str(global_counter) + '.png')
+
+    # matplotlib.pyplot.show(block = True)
+
+
     z_sample = noise
     samples = dcgan.sampler2(w)
     samples = sess.run(samples, feed_dict={w: z_sample})
-    save_images(samples, [64, 64],
-                './tests/' + 'MIAS' + '/Query-recreation.png')
-    save_images(query_im, [64, 64],
-                './tests/' + 'MIAS' + '/Query.png')
-    cont = tf.concat([query, samples], axis=2)
-    print(cont.get_shape)
-    tmp = np.ones([1, 64, 128, 1])
-    tmp = np.asarray(cont[0, :, :, 0])
-    tmp = tmp.squeeze()
-    print("shapezzz", tmp.shape)
-    matplotlib.image.imsave('./tests/' + 'MIAS' + '/both.png', np.reshape(tmp, (tmp.shape[0], tmp.shape[1])),
-                            cmap="gray")
-    return current_loss
+    # save_images(samples, [64, 64],
+    # './tests/' + 'MIAS' + '/Query-recreation'+str(global_counter))
+    # save_images(query_im, [64, 64],
+    # './tests/' + 'MIAS' + '/Query'+str(global_counter))
+
+    samples = np.asarray(samples)
+    query_im = query_im.squeeze()
+    samples = samples.squeeze()
+    res_im = np.absolute((samples - query_im))
+
+    tmp = np.concatenate([query_im, samples, res_im], axis=1)
+
+    # query_im = inverse_transform(query_im)
+    # samples = inverse_transform(samples)
+    print(samples.max(), samples.min())
+    print(query_im.max(), query_im.min())
+    print(res_im.max(), res_im.min())
+    print(tmp.shape)
+    maxi = np.max(tmp)
+    mini = np.min(tmp)
+
+    # matplotlib.image.imsave('./tests/' + 'MIAS' + '/both'+str(global_counter)+'.png', np.reshape(tmp, (tmp.shape[0], tmp.shape[1])), cmap="gray",vmin=0,vmax=1)
+    matplotlib.image.imsave(
+        './tests/' + 'MIAS' + '/both' + str(global_counter) + 'normalized-' + str(current_loss) + '-.png',
+        np.reshape(tmp, (tmp.shape[0], tmp.shape[1])), cmap="gray")
+    return current_loss, R, D
