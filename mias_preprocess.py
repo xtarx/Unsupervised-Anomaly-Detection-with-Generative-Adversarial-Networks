@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import numpy as np
+import scipy.misc
+
 import matplotlib.image as matlabimg
 import re
 import pandas as pd
@@ -56,43 +58,44 @@ def read_pgm(filename, byteorder='>'):
                          ).reshape((int(height), int(width)))
 
 
-images = []
-for i, row in normal.iterrows():
-    images.append(read_pgm('./mias/pgm/' + row['reference_number'] + '.pgm'))
+def convert_pgm_to_png():
+    images = []
+    for i, row in normal.iterrows():
+        images.append(read_pgm('./mias/pgm/' + row['reference_number'] + '.pgm'))
 
-j = 0;
-for i, row in normal.iterrows():
-    images[j].setflags(write=1)
-    if (int(row['reference_number'][-3:]) % 2 == 0):
-        images[j][:324, 700:1024] = np.zeros((324, 324))
-    else:
-        images[j][:324, :324] = np.zeros((324, 324))
-        matlabimg.imsave('./mias/png/' + row['reference_number'] + '.png', images[j], vmin=0, vmax=255, cmap='gray')
-    j += 1
+    j = 0;
+    for i, row in normal.iterrows():
+        images[j].setflags(write=1)
+        if (int(row['reference_number'][-3:]) % 2 == 0):
+            images[j][:324, 700:1024] = np.zeros((324, 324))
+        else:
+            images[j][:324, :324] = np.zeros((324, 324))
+            matlabimg.imsave('./mias/png/' + row['reference_number'] + '.png', images[j], vmin=0, vmax=255, cmap='gray')
+        j += 1
 
 
 def generate_patches(input_image):
+    # print("in generate patchhes")
     global global_counter
     input_image = crop_center(input_image, 384, 384)
-    patches = image.extract_patches_2d(input_image, patch_size, max_patches=200,
+    patches = image.extract_patches_2d(input_image, patch_size, max_patches=400,
                                        random_state=rng)
     for counter, i in enumerate(patches):
+
         if np.any(i):
-            matlabimg.imsave('./data/mias/' + str(global_counter) + '.jpg', i, cmap='gray')
+            matlabimg.imsave('./data/mias200/' + str(global_counter) + '.png', i, cmap='gray')
             global_counter += 1
 
-
-# images = []
-# arr = os.listdir(os.getcwd() + "/mias/png/")
-# for img in arr:
-#     images.append(matlabimg.imread(os.getcwd() + "/mias/png/" + img))
 #
+# convert_pgm_to_png()
+
+images = []
+arr = os.listdir(os.getcwd() + "/mias/png/")
+# arr=arr[1:2]
+print("png size ",len(arr))
+for img in arr:
+    images.append(matlabimg.imread(os.getcwd() + "/mias/png/" + img))
+
 # generate_patches(images[0])
 for counter, image_full in enumerate(images):
     generate_patches(image_full)
-
-
-
-# img = matlabimg.imread("./data/mias/87.jpg")
-#
-# print(img)
