@@ -461,7 +461,6 @@ class DCGAN(object):
     def sampler(self, z, y=None):
         with tf.variable_scope("generator") as scope:
             scope.reuse_variables()
-
             if not self.y_dim:
                 s_h, s_w = self.output_height, self.output_width
                 s_h2, s_w2 = conv_out_size_same(s_h, 2), conv_out_size_same(s_w, 2)
@@ -487,6 +486,7 @@ class DCGAN(object):
                 h4 = deconv2d(h3, [self.batch_size, s_h, s_w, self.c_dim], name='g_h4')
 
                 return tf.nn.tanh(h4)
+
             else:
                 s_h, s_w = self.output_height, self.output_width
                 s_h2, s_w2 = conv_out_size_same(s_h, 2), conv_out_size_same(s_w, 2)
@@ -515,7 +515,6 @@ class DCGAN(object):
                 h4 = deconv2d(h3, [self.batch_size, s_h, s_w, self.c_dim], name='g_h4')
                 ###############################################################################
                 return tf.nn.tanh(h4)
-
     def load_mnist(self):
         data_dir = os.path.join("./data", self.dataset_name)
 
