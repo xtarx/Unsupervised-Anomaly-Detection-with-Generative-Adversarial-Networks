@@ -3,7 +3,7 @@ import scipy.misc
 import numpy as np
 
 from model import DCGAN
-from utils import *
+from utils import pp, visualize, to_json, show_all_variables, generate_latent_for_query
 
 import tensorflow as tf
 
@@ -23,7 +23,7 @@ flags.DEFINE_string("dataset", "mias", "The name of dataset [celebA, mnist, lsun
 flags.DEFINE_string("input_fname_pattern", "*.png", "Glob pattern of filename of input images [*]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
-flags.DEFINE_boolean("train", False, "True for training, False for testing [False]")
+flags.DEFINE_boolean("train", True, "True for training, False for testing [False]")
 flags.DEFINE_boolean("crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
 FLAGS = flags.FLAGS
@@ -74,6 +74,7 @@ def main(_):
                 dataset_name=FLAGS.dataset,
                 input_fname_pattern=FLAGS.input_fname_pattern,
                 crop=FLAGS.crop,
+                y_dim=2,
                 checkpoint_dir=FLAGS.checkpoint_dir,
                 sample_dir=FLAGS.sample_dir)
 
@@ -92,9 +93,8 @@ def main(_):
         #                 [dcgan.h4_w, dcgan.h4_b, None])
 
         # Below is codes for visualization
-        OPTION = 0
-        # visualize(sess, dcgan, FLAGS, OPTION)
-
+        OPTION = 1
+        #visualize(sess, dcgan, FLAGS, OPTION)
         query_image = 'tests/generate_tarek/472.png'
         generate_latent_for_query(sess, dcgan, query_image, inputClass=None, FLAGS=FLAGS, OPTION=OPTION)
 
