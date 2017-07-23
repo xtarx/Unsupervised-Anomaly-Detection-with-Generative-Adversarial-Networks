@@ -8,6 +8,7 @@ import random
 import pprint
 import scipy.misc
 import matplotlib
+import re
 
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -267,14 +268,12 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
     try:
         os.makedirs('./tests')
     except:
-        print('Dir exsists')
+        print('Dir exists')
         dcgan.batch_size = batch_size
 
-        # define a tensorflow varb
+        # define a tensorflow var
         w = tf.Variable(initial_value=tf.random_uniform(minval=-1, maxval=1, shape=[batch_size, dcgan.z_dim]),
                         name='qnoise')
-        # z_sample = np.random.uniform(-1, 1, size=(config.batch_size, dcgan.z_dim))
-        # samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample})
 
         samples = dcgan.sampler(w)
         # samples = (samples + 1) / 2
@@ -309,22 +308,30 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
         else:
             q = read_img_right_way(query_image)
 
-        # define loss funtion and optimizer
+        #define loss funtion and optimizer
         resloss = tf.reduce_mean(tf.abs(samples - query))
         discLoss = tf.reduce_mean(tf.abs(real - fake))
         loss = resloss + discLoss
 
-        loss, R, D = query_noise(dcgan, sess, q, w, optim, loss, query, resloss, discLoss)
+        # arr = os.listdir("./tests/healthy")
+        # img=arr[0]
+        # for img in arr:
+        # q = read_img_right_way("./tests/healthy/"+img)
+
+        loss, R, D = query_noise(dcgan, sess, q, w, optim, loss, query, resloss, discLoss,
+                                 query_im_path=query_image)
         global_counter += 1
         avg += loss
-        print(" Total Loss : Residual Loss : Discr. Loss ", loss, R, D)
+        # print("Healthy Batch size", len(arr))
+        print("Total Loss : Residual Loss : Discr. Loss ", loss, R, D)
         print('Average Loss', avg / global_counter)
+        # print('Average Loss', avg / len(arr))
 
-        return  loss, R, D
+        return loss, R, D
 
 
 # Takes a query image, returns the image re-created by the GAN
-def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_loss, batch_size=1, noise_size=100):
+def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_loss, query_im_path=""):
     plt.ioff()
 
     losses = []
@@ -338,13 +345,6 @@ def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_los
 
     matplotlib.pyplot.figure(1)
     matplotlib.pyplot.plot(np.arange(0, r, 1), losses)
-    if (global_counter % 2 == 0):
-        matplotlib.pyplot.savefig("./tests/" + str(global_counter) + '.png')
-
-    # matplotlib.pyplot.show(block=True)
-
-    # z_sample = np.random.uniform(-1, 1, size=(64 , dcgan.z_dim))
-
     z_sample = noise
     samples = dcgan.sampler(w)
     samples = sess.run(samples, feed_dict={w: z_sample})
@@ -358,20 +358,17 @@ def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_los
     samples = np.asarray(samples[0])
     samples = np.expand_dims(samples, axis=0)
 
-    # query_im = query_im.squeeze()
-    # samples = samples.squeeze()
-    # samples = (samples + 1) / 2
     res_im = np.absolute((samples - query_im))
     res_im = normalize_negative1_to_1(res_im)
     grid_image = np.concatenate([query_im, samples, res_im], axis=1)
 
-    print("QUERY IMG shape  MAX-MIN  ", query.shape, query_im.max(), query_im.min())
-    print("GAN IMG  shape MAX-MIN  ", samples.shape, samples.max(), samples.min())
-    print("RES IMG shape MAX-MIN  ", res_im.shape, res_im.max(), res_im.min())
-    print("GRID  IMG shape MAX-MIN  ", grid_image.shape, grid_image.max(), grid_image.min())
-
+    print("QUERY IMG shape MAX-MIN ", query.shape, query_im.max(), query_im.min())
+    print("GAN IMG shape MAX-MIN ", samples.shape, samples.max(), samples.min())
+    print("RES IMG shape MAX-MIN ", res_im.shape, res_im.max(), res_im.min())
+    print("GRID IMG shape MAX-MIN ", grid_image.shape, grid_image.max(), grid_image.min())
     save_images(grid_image, [image_frame_dim, image_frame_dim],
-                './tests/MERGED - ' + str(current_loss) + '.png')
+                './tests/' + str(re.sub('[^A-Za-z0-9]+', '', query_im_path)) + '_MERGED - ' + str(current_loss) + '.png')
+    matplotlib.pyplot.savefig("./tests/" + str(re.sub('[^A-Za-z0-9]+', '', query_im_path)) + '_graph.png')
 
     return current_loss, R, D
 

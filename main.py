@@ -86,18 +86,16 @@ def main(_):
             if not dcgan.load(FLAGS.checkpoint_dir)[0]:
                 raise Exception("[!] Train a model first, then run test mode")
 
-        # to_json("./web/js/layers.js", [dcgan.h0_w, dcgan.h0_b, dcgan.g_bn0],
-        #                 [dcgan.h1_w, dcgan.h1_b, dcgan.g_bn1],
-        #                 [dcgan.h2_w, dcgan.h2_b, dcgan.g_bn2],
-        #                 [dcgan.h3_w, dcgan.h3_b, dcgan.g_bn3],
-        #                 [dcgan.h4_w, dcgan.h4_b, None])
 
         # Below is codes for visualization
         OPTION = 0
         # visualize(sess, dcgan, FLAGS, OPTION)
-        query_image = 'tests/472.png'
-        # mmm_merge(query_image)
-        generate_latent_for_query(sess, dcgan, query_image, inputClass=None, FLAGS=FLAGS, OPTION=OPTION)
+        query_image = 'tests/healthy/21517.png'
+        # query_image = 'tests/anomlus/20.png'
+        generate_latent_for_query(sess, dcgan, query_image, inputClass=None, FLAGS=FLAGS,
+                                               OPTION=OPTION)
+
+
 
 
 if __name__ == '__main__':
