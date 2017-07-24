@@ -286,13 +286,17 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
         # define loss funtion and optimizer
         resloss = tf.reduce_mean(tf.abs(samples - query))
         discLoss = tf.reduce_mean(tf.abs(real - fake))
-        loss = resloss + 2*discLoss
+        loss = 0.9*resloss + 0.1*discLoss
 
 
 
         avg = 0
-        arr = os.listdir(os.getcwd() + "/mias_anom_cherrypicked")
+        arr = os.listdir(os.getcwd() + "/data/normal")
         lossF = []
+        avgd = 0
+        avgr = 0
+        discL = []
+        resL =[]
         for idx, im in enumerate(arr):
             optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
                 .minimize(loss, var_list=[w])
@@ -312,7 +316,7 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
                 q, _ = inputClass.next_batch(1)
                 print("using next batch")
             else:
-                q = read_img_right_way("./mias_anom_cherrypicked/"+im)
+                q = read_img_right_way("./data/normal/"+im)
 
 
 
@@ -323,17 +327,22 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
 
             loss, R, D = query_noise(dcgan, sess, q, w, optim, loss, query, resloss, discLoss,
                                      lossF,query_im_path=im)
-            print(lossF)
             global_counter += 1
             avg += loss
+            avgd += D
+            avgr += R
+            discL.append(D)
+            resL.append(R)
             # print("Healthy Batch size", len(arr))
             print("Total Loss : Residual Loss : Discr. Loss ", loss, R, D)
-            print('Average Loss', avg / global_counter)
+            print('Average Loss', avg / global_counter, avgd / global_counter, avgr / global_counter)
             # print('Average Loss', avg / len(arr))
             # define loss funtion and optimizer
             resloss = tf.reduce_mean(tf.abs(samples - query))
             discLoss = tf.reduce_mean(tf.abs(real - fake))
-            loss = resloss + 2*discLoss
+            loss = 0.9*resloss + 0.1*discLoss
+        lossF.append([avgr/global_counter,avgd/global_counter])
+        lossF.append([np.std(np.asarray(resL)),np.std(np.asarray(discL))])
         with open('loss.csv', 'a') as outcsv:
             # configure writer to write standard csv file
             writer = csv.writer(outcsv, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
@@ -350,7 +359,7 @@ def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_los
 
     losses = []
     # backprop over noise to minimize loss(r iterations)
-    r = 10
+    r = 2000
     for i in range(r):
         _, current_loss, noise = sess.run([optim, loss, w], feed_dict={query: query_im})
         losses.append(current_loss)
@@ -381,7 +390,7 @@ def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_los
 
     res_im = (query_im - samples)
     res_im = res_im
-    res_im[res_im < np.max(res_im)/5] = 0
+    res_im[res_im < np.max(res_im)/10] = 0
     tmp = np.concatenate([query_im, samples, res_im], axis=1)
 
     # query_im = inverse_transform(query_im)
