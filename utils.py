@@ -8,6 +8,8 @@ import random
 import pprint
 import scipy.misc
 import matplotlib
+import csv
+
 import re
 
 # matplotlib.use('TkAgg')
@@ -284,59 +286,71 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
         # define loss funtion and optimizer
         resloss = tf.reduce_mean(tf.abs(samples - query))
         discLoss = tf.reduce_mean(tf.abs(real - fake))
-        loss = resloss + 2 * discLoss
+        loss = resloss + 2*discLoss
 
-        optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
-            .minimize(loss, var_list=[w])
 
-        # init vars
-        w_init = w.initializer
-        sess.run(w_init)
-        # tf.variables_initializer([w]).run(session = sess)
-        # print(sess.run(tf.report_uninitialized_variables()))
-        adam_initializers = [var.initializer for var in tf.global_variables() if 'qnoise/Adam' in var.name]
-        sess.run(adam_initializers)
-        beta_initializers = [var.initializer for var in tf.global_variables() if 'beta1_power' in var.name]
-        sess.run(beta_initializers)
-        beta_initializers = [var.initializer for var in tf.global_variables() if 'beta2_power' in var.name]
-        sess.run(beta_initializers)
 
         avg = 0
-        if (inputClass is not None):
-            q, _ = inputClass.next_batch(1)
-            print("using next batch")
-        else:
-            q = read_img_right_way(query_image)
+        arr = os.listdir(os.getcwd() + "/mias_anom_cherrypicked")
+        lossF = []
+        for idx, im in enumerate(arr):
+            optim = tf.train.AdamOptimizer(learning_rate, beta1=beta1) \
+                .minimize(loss, var_list=[w])
 
-        #define loss funtion and optimizer
-        resloss = tf.reduce_mean(tf.abs(samples - query))
-        discLoss = tf.reduce_mean(tf.abs(real - fake))
-        loss = resloss + discLoss
+            # init vars
+            w_init = w.initializer
+            sess.run(w_init)
+            # tf.variables_initializer([w]).run(session = sess)
+            # print(sess.run(tf.report_uninitialized_variables()))
+            adam_initializers = [var.initializer for var in tf.global_variables() if 'qnoise/Adam' in var.name]
+            sess.run(adam_initializers)
+            beta_initializers = [var.initializer for var in tf.global_variables() if 'beta1_power' in var.name]
+            sess.run(beta_initializers)
+            beta_initializers = [var.initializer for var in tf.global_variables() if 'beta2_power' in var.name]
+            sess.run(beta_initializers)
+            if (inputClass is not None):
+                q, _ = inputClass.next_batch(1)
+                print("using next batch")
+            else:
+                q = read_img_right_way("./mias_anom_cherrypicked/"+im)
 
-        # arr = os.listdir("./tests/healthy")
-        # img=arr[0]
-        # for img in arr:
-        # q = read_img_right_way("./tests/healthy/"+img)
 
-        loss, R, D = query_noise(dcgan, sess, q, w, optim, loss, query, resloss, discLoss,
-                                 query_im_path=query_image)
-        global_counter += 1
-        avg += loss
-        # print("Healthy Batch size", len(arr))
-        print("Total Loss : Residual Loss : Discr. Loss ", loss, R, D)
-        print('Average Loss', avg / global_counter)
-        # print('Average Loss', avg / len(arr))
 
+            # arr = os.listdir("./tests/healthy")
+            # img=arr[0]
+            # for img in arr:
+            # q = read_img_right_way("./tests/healthy/"+img)
+
+            loss, R, D = query_noise(dcgan, sess, q, w, optim, loss, query, resloss, discLoss,
+                                     lossF,query_im_path=im)
+            print(lossF)
+            global_counter += 1
+            avg += loss
+            # print("Healthy Batch size", len(arr))
+            print("Total Loss : Residual Loss : Discr. Loss ", loss, R, D)
+            print('Average Loss', avg / global_counter)
+            # print('Average Loss', avg / len(arr))
+            # define loss funtion and optimizer
+            resloss = tf.reduce_mean(tf.abs(samples - query))
+            discLoss = tf.reduce_mean(tf.abs(real - fake))
+            loss = resloss + 2*discLoss
+        with open('loss.csv', 'a') as outcsv:
+            # configure writer to write standard csv file
+            writer = csv.writer(outcsv, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            writer.writerow(['residual', 'disc'])
+            for item in lossF:
+                # Write item to outcsv
+                writer.writerow([item[0], item[1]])
         return loss, R, D
 
 
 # Takes a query image, returns the image re-created by the GAN
-def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_loss, query_im_path=""):
-    plt.ioff()
+def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_loss,lossF, query_im_path=""):
+    matplotlib.pyplot.ioff()
 
     losses = []
     # backprop over noise to minimize loss(r iterations)
-    r = 1000
+    r = 10
     for i in range(r):
         _, current_loss, noise = sess.run([optim, loss, w], feed_dict={query: query_im})
         losses.append(current_loss)
@@ -345,31 +359,45 @@ def query_noise(dcgan, sess, query_im, w, optim, loss, query, res_loss, disc_los
 
     matplotlib.pyplot.figure(1)
     matplotlib.pyplot.plot(np.arange(0, r, 1), losses)
+    #if (global_counter % 2 == 0):
+    matplotlib.pyplot.savefig(str(global_counter) + '.png')
+
+    # matplotlib.pyplot.show(block = True)
+
+
     z_sample = noise
     samples = dcgan.sampler(w)
     samples = sess.run(samples, feed_dict={w: z_sample})
-    image_frame_dim = int(math.ceil(1 ** .5))
+    # save_images(samples, [64, 64],
+    # './tests/' + 'MIAS' + '/Query-recreation'+str(global_counter))
+    # save_images(query_im, [64, 64],
+    # './tests/' + 'MIAS' + '/Query'+str(global_counter))
 
-    save_images(samples, [image_frame_dim, image_frame_dim],
-                './tests/GAN.png')
-    save_images(query_im, [image_frame_dim, image_frame_dim],
-                './tests/QUERY.png')
+    samples = np.asarray(samples)
+    query_im = query_im.squeeze()
+    samples = samples.squeeze()
+    samples = (samples+1)/2
+    query_im = (query_im+1)/2
 
-    samples = np.asarray(samples[0])
-    samples = np.expand_dims(samples, axis=0)
+    res_im = (query_im - samples)
+    res_im = res_im
+    res_im[res_im < np.max(res_im)/5] = 0
+    tmp = np.concatenate([query_im, samples, res_im], axis=1)
 
-    res_im = np.absolute((samples - query_im))
-    res_im = normalize_negative1_to_1(res_im)
-    grid_image = np.concatenate([query_im, samples, res_im], axis=1)
+    # query_im = inverse_transform(query_im)
+    # samples = inverse_transform(samples)
+    print(samples.max(), samples.min())
+    print(query_im.max(), query_im.min())
+    print(res_im.max(), res_im.min())
+    print(tmp.shape)
+    maxi = np.max(tmp)
+    mini = np.min(tmp)
 
-    print("QUERY IMG shape MAX-MIN ", query.shape, query_im.max(), query_im.min())
-    print("GAN IMG shape MAX-MIN ", samples.shape, samples.max(), samples.min())
-    print("RES IMG shape MAX-MIN ", res_im.shape, res_im.max(), res_im.min())
-    print("GRID IMG shape MAX-MIN ", grid_image.shape, grid_image.max(), grid_image.min())
-    save_images(grid_image, [image_frame_dim, image_frame_dim],
-                './tests/' + str(re.sub('[^A-Za-z0-9]+', '', query_im_path)) + '_MERGED - ' + str(current_loss) + '.png')
-    matplotlib.pyplot.savefig("./tests/" + str(re.sub('[^A-Za-z0-9]+', '', query_im_path)) + '_graph.png')
-
+    # matplotlib.image.imsave('./tests/' + 'MIAS' + '/both'+str(global_counter)+'.png', np.reshape(tmp, (tmp.shape[0], tmp.shape[1])), cmap="gray",vmin=0,vmax=1)
+    matplotlib.image.imsave(
+        './tests/' + 'MIAS' + '/both' + query_im_path + 'normalized-' + str(current_loss) + '-.png',
+        np.reshape(tmp, (tmp.shape[0], tmp.shape[1])), vmin=0, vmax=1, cmap="gray")
+    lossF.append([R,D])
     return current_loss, R, D
 
 

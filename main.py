@@ -90,7 +90,7 @@ def main(_):
         # Below is codes for visualization
         OPTION = 0
         # visualize(sess, dcgan, FLAGS, OPTION)
-        query_image = 'tests/healthy/21517.png'
+        query_image = 'tests/healthy/21497.png'
         # query_image = 'tests/anomlus/20.png'
         generate_latent_for_query(sess, dcgan, query_image, inputClass=None, FLAGS=FLAGS,
                                                OPTION=OPTION)
