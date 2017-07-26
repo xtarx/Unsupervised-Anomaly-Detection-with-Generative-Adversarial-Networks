@@ -1,8 +1,6 @@
 **Anomaly detection using GANs**
 ----
-The goal of this project is be able to detect anomolies using GANs based on [Unsupervised Anomaly Detection with Generative Adversarial Networks to Guide Marker Discovery
-
-](https://arxiv.org/abs/1703.05921)
+The goal of this project is be able to detect anomolies using GANs based on [Unsupervised Anomaly Detection with Generative Adversarial Networks to Guide Marker Discovery](https://arxiv.org/abs/1703.05921)
 ## Dataset
  we are using MIAS dataset http://peipa.essex.ac.uk/info/mias.html
 
