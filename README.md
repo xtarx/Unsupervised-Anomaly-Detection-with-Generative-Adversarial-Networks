@@ -1,21 +1,20 @@
 **Anomaly detection using GANs**
 ----
 The goal of this project is be able to detect anomolies using GANs
+## Dataset
+ we are using MIAS dataset http://peipa.essex.ac.uk/info/mias.html
 
-* **Dataset**
- we are using MIAS dataset  http://peipa.essex.ac.uk/info/mias.html
 
-
-* **Architecture:**
+## Architecture
 Our code is based on DCGAN from this wonderful repo https://github.com/carpedm20/DCGAN-tensorflow
   
-*  **Results**
+## Results
 * TODO
 
-   **How to run:**
+## How to run
  * TODO
   
-   **Contributors:**
+## Contributors
 
 * Ahmed Ayad
 * M.Tarek Shaban  -  [@XtarX](github.com/xtarx)
