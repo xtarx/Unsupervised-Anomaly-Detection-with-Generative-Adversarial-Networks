@@ -17,8 +17,8 @@ Our code is based on DCGAN from this wonderful repo https://github.com/carpedm20
 ## Contributors
 
 * Ahmed Ayad
-* M.Tarek Shaban  -  [@XtarX](github.com/xtarx)
-* Wassim Gabriel - [@wassimG](github.com/wassimG)
+* M.Tarek Shaban  -  [@XtarX](https://github.com/xtarx)
+* Wassim Gabriel - [@wassimG](https://github.com/wassimG)
   
 ## To Do
 - [ ] Complete Readme.
