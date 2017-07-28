@@ -49,10 +49,10 @@ class DCGAN(object):
         self.z_dim = z_dim
 
         self.gf_dim = gf_dim
-        self.df_dim = df_dim
+        self.df_dim = 72
 
         self.gfc_dim = gfc_dim
-        self.dfc_dim = dfc_dim
+        self.dfc_dim = 2048
 
         # batch normalization : deals with poor initialization helps gradient flow
         self.d_bn1 = batch_norm(name='d_bn1')
@@ -158,7 +158,7 @@ class DCGAN(object):
         self.saver = tf.train.Saver()
 
     def train(self, config):
-        d_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
+        d_optim = tf.train.AdamOptimizer(0.00035, beta1=config.beta1) \
             .minimize(self.d_loss, var_list=self.d_vars)
         g_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
             .minimize(self.g_loss, var_list=self.g_vars)

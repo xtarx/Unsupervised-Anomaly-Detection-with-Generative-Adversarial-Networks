@@ -35,6 +35,10 @@ def get_image(image_path, input_height, input_width,
 def save_images(images, size, image_path):
   return imsave(inverse_transform(images), size, image_path)
 
+def save_images2(image, image_path):
+    image = np.reshape(image,[96,96])
+    return imsave2(inverse_transform(image),image_path)
+
 def imread(path, grayscale = False):
   if (grayscale):
     return scipy.misc.imread(path, flatten = True).astype(np.float)
@@ -68,6 +72,9 @@ def merge(images, size):
 def imsave(images, size, path):
   image = np.squeeze(merge(images, size))
   return scipy.misc.imsave(path, image)
+
+def imsave2(image,path):
+    return scipy.misc.imsave(path, image)
 
 def center_crop(x, crop_h, crop_w,
                 resize_h=64, resize_w=64):
@@ -173,11 +180,14 @@ def make_gif(images, fname, duration=2, true_image=False):
   clip.write_gif(fname, fps = len(images) / duration)
 
 def visualize(sess, dcgan, config, option):
-  image_frame_dim = int(math.ceil(config.batch_size**.5))
+  image_frame_dim = int(math.ceil(config.batch_size ** .5))
   if option == 0:
-    z_sample = np.random.uniform(-0.5, 0.5, size=(config.batch_size, dcgan.z_dim))
-    samples = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample})
-    save_images(samples, [image_frame_dim, image_frame_dim], './samples/test_%s.png' % strftime("%Y%m%d%H%M%S", gmtime()))
+    for i in range(600):
+      z_sample = np.random.uniform(-1, 1, size=(config.batch_size, dcgan.z_dim))
+      samples = sess.run(dcgan.sampler2, feed_dict={dcgan.z: z_sample})
+
+      for idx, im in enumerate(samples):
+        save_images2(im, './samples/test/test_%s.png' % ('' + str(i) + '_' + str(idx)))
   elif option == 1:
     values = np.arange(0, 1, 1./config.batch_size)
     for idx in xrange(100):
@@ -281,7 +291,7 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
     # define loss funtion and optimizer
     Resloss = tf.reduce_mean(tf.abs(samples - query))
     DiscLoss = tf.reduce_mean(tf.abs(real - fake))
-    loss = Resloss + DiscLoss
+    loss = 2*Resloss + 0.5*DiscLoss
     # Training params
     learning_rate = 0.0007
     beta1 = 0.7
@@ -302,34 +312,39 @@ def generate_latent_for_query(sess, dcgan, query_image, inputClass, FLAGS, OPTIO
 
     x = 1
     avg = 0
+    arr = os.listdir(os.getcwd() + "/data/normal_mias2/")
     #while (x != 0):
-    if (inputClass is not None):
-      q, _ = inputClass.next_batch(1)
-      print("using next batch")
-    else:
-      q = scipy.misc.imread(query_image, flatten=True)
+    for im in arr:
+      if (inputClass is not None):
+        q, _ = inputClass.next_batch(1)
+        print("using next batch")
+      else:
+        print(im)
+        q = scipy.misc.imread(os.getcwd() + "/data/normal_mias2/" + im, flatten=True)
+        q = np.asarray(q)
+        q /= 255
+      # q = transform(q, 64, 64)
+      # q = np.expand_dims(q,axis=2)
+      # q = np.expand_dims(q, axis=0)
+
       q = np.asarray(q)
-      q /= 255
-    # q = transform(q, 64, 64)
-    # q = np.expand_dims(q,axis=2)
-    # q = np.expand_dims(q, axis=0)
+      q = np.expand_dims(q,axis=0)
+      q = np.expand_dims(q,axis=3)
+      print(q.shape)
+      loss, R, D = query_noise2(dcgan, sess, q, w, optim, loss, query, Resloss, DiscLoss)
+      # x = input("press 0 to quit")
+      global_counter += 1
 
-    q = np.asarray(q)
-    q = np.expand_dims(q,axis=0)
-    q = np.expand_dims(q,axis=3)
-    print(q.shape)
-    loss, R, D = query_noise2(dcgan, sess, q, w, optim, loss, query, Resloss, DiscLoss)
-    # x = input("press 0 to quit")
-    global_counter += 1
+      avg += loss
+      print(loss, R, D)
+      print('AVerage Loss', avg / global_counter)
 
-    avg += loss
-    print(loss, R, D)
-    print('AVerage Loss', avg / global_counter)
-
-    # define loss funtion and optimizer
-    Resloss = tf.reduce_mean(tf.abs(samples - query))
-    DiscLoss = tf.reduce_mean(tf.abs(real - fake))
-    loss = Resloss + DiscLoss
+      # define loss funtion and optimizer
+      Resloss = tf.reduce_mean(tf.abs(samples - query))
+      DiscLoss = tf.reduce_mean(tf.abs(real - fake))
+      loss = 2*Resloss + 0.5*DiscLoss
+      w_init = w.initializer
+      sess.run(w_init)
     return False
 
 
@@ -341,12 +356,12 @@ def query_noise2(dcgan, sess, query_im, w, optim, loss, query, Res_loss, Disc_lo
 
   losses = []
   # backprop over noise to minimize loss(r iterations)
-  r = 1000
+  r = 2000
   for i in range(r):
     _, current_loss, noise = sess.run([optim, loss, w], feed_dict={query: query_im})
     losses.append(current_loss)
-    print(current_loss)
   R, D = sess.run([Res_loss, Disc_loss], {query: query_im})
+  print(current_loss)
 
   matplotlib.pyplot.figure(1)
   matplotlib.pyplot.plot(np.arange(0, r, 1), losses)
@@ -377,8 +392,6 @@ def query_noise2(dcgan, sess, query_im, w, optim, loss, query, Res_loss, Disc_lo
   print(samples)
   print('.....')
   print(query_im)
-  scipy.misc.imsave('./tests/' + 'MIAS/1.png',query_im)
-  scipy.misc.imsave('./tests/' + 'MIAS/0.png',samples)
 
   tmp = np.concatenate([query_im, samples, res_im], axis=1)
 
