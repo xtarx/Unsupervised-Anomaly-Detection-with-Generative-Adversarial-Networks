@@ -11,7 +11,7 @@ import os
 from sklearn.feature_extraction import image
 
 rng = np.random.RandomState(0)
-patch_size = (96,96)
+patch_size = (128,128)
 global_counter = 0
 
 # read csvFile
@@ -73,47 +73,28 @@ def convert_pgm_to_png():
             matlabimg.imsave('./mias/png/' + row['reference_number'] + '.png', images[j], vmin=0, vmax=255, cmap='gray')
         j += 1
 
-def convert_pgm_to_png_anomalous():
-    images = []
-    for i, row in abnormal.iterrows():
-        images.append(read_pgm('./mias/pgm/' + row['reference_number'] + '.pgm'))
-
-    j = 0;
-    for i, row in abnormal.iterrows():
-        images[j].setflags(write=1)
-        if (int(row['reference_number'][-3:]) % 2 == 0):
-            images[j][:324, 700:1024] = np.zeros((324, 324))
-        else:
-            images[j][:324, :324] = np.zeros((324, 324))
-            matlabimg.imsave('./mias/png_anomalous/' + row['reference_number'] + '.png', images[j], vmin=0, vmax=255, cmap='gray')
-        j += 1
-
 
 def generate_patches(input_image):
     # print("in generate patchhes")
     global global_counter
-    input_image = crop_center(input_image, 384, 384)
-    patches = image.extract_patches_2d(input_image, patch_size, max_patches=50,
+    input_image = crop_center(input_image, 512, 512)
+    patches = image.extract_patches_2d(input_image, patch_size, max_patches=400,
                                        random_state=rng)
     for counter, i in enumerate(patches):
 
         if np.any(i):
-            matlabimg.imsave('./data/mias_anomalous/' + str(global_counter) + '.png', i, cmap='gray')
+            matlabimg.imsave('./data/mias/' + str(global_counter) + '.png', i, cmap='gray')
             global_counter += 1
 
 #
-# convert_pgm_to_png_anomalous()
+convert_pgm_to_png()
 
 images = []
-# arr = os.listdir(os.getcwd() + "/mias/png_anomalous/")
-# arr=arr[1:10]
-arr=[]
-arr.append(os.getcwd() + "/mias/png_anomalous/mdb063.png")
-print(arr)
+arr = os.listdir(os.getcwd() + "/mias/png/")
+# arr=arr[1:2]
 print("png size ",len(arr))
 for img in arr:
-    # images.append(matlabimg.imread(os.getcwd() + "/mias/png_anomalous/" + img))
-    images.append(matlabimg.imread(img))
+    images.append(matlabimg.imread(os.getcwd() + "/mias/png/" + img))
 
 # generate_patches(images[0])
 for counter, image_full in enumerate(images):
